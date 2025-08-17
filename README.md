@@ -164,3 +164,77 @@ If you want to expose WordPress securely over the internet without opening ports
 - **Environment Variables:** Defaults are provided, but always override passwords. You can also add more WordPress env vars (e.g., `WORDPRESS_DEBUG: true`) in the stack configuration for debugging.
 
 This setup provides a robust, containerized WordPress environment. For advanced configurations, refer to the official WordPress Docker documentation or Portainer guides. If you encounter issues, provide container logs for further assistance.
+
+---
+
+# Resolving WordPress Database Connection Issues with Docker MySQL Container
+
+## Overview
+
+This guide explains how to resolve WordPress errors when it cannot establish a database connection while running on Docker. It assumes you already have a MySQL container (named `florentine-db`) running and WordPress connected to it.
+
+## Prerequisites
+
+* Docker installed and running
+* `florentine-db` MySQL container up and running
+* WordPress container configured to connect to `florentine-db`
+* MySQL root password available
+* Knowledge of MySQL user credentials for WordPress (`wpuser`)
+
+## Steps to Fix Database Connection
+
+### 1. Access the MySQL Container
+
+Run the following command to open a MySQL prompt inside the running container:
+
+```bash
+docker exec -it florentine-db mysql -u root -p
+```
+
+You will be prompted to enter the MySQL root password:
+
+```
+Enter password: <mysql-password>
+```
+
+### 2. Update the WordPress Database User
+
+Once inside the MySQL prompt, execute the following commands to ensure the WordPress user (`wpuser`) can connect from any host using the native password plugin:
+
+```sql
+ALTER USER 'wpuser'@'%' IDENTIFIED WITH mysql_native_password BY '<mysql-password>' REQUIRE NONE;
+FLUSH PRIVILEGES;
+```
+
+**Explanation:**
+
+* `ALTER USER`: Updates the authentication method and password for `wpuser`.
+* `mysql_native_password`: Ensures compatibility with WordPress.
+* `FLUSH PRIVILEGES`: Reloads MySQL privileges to apply changes immediately.
+
+### 3. Exit MySQL Prompt
+
+Exit the MySQL prompt:
+
+```sql
+EXIT;
+```
+
+### 4. Restart Docker Containers
+
+To apply the changes, restart both your MySQL and WordPress containers:
+
+```bash
+docker restart florentine-db
+docker restart <wordpress-container-name>
+```
+
+**Note:** Replace `<wordpress-container-name>` with the actual name of your WordPress container.
+
+## Validation
+
+After restarting, verify that WordPress can connect to the database:
+
+1. Open your WordPress site in a browser.
+2. If the site loads correctly without the `Error establishing a database connection` message, the issue is resolved.
+
